@@ -1,7 +1,5 @@
 FROM nvidia/cuda:12.2.0-base-ubuntu22.04
 
-COPY . /app
-
 RUN apt-get update && \
     apt-get install -y --allow-unauthenticated --no-install-recommends \
     wget \
@@ -26,9 +24,22 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -
 # --login option used to source bashrc (thus activating conda env) at every RUN statement
 SHELL ["/bin/bash", "--login", "-c"]
 
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main \
+    && conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+
 RUN conda create --name tortoise python=3.9 numba inflect -y \
     && conda activate tortoise \
     && conda install --yes pytorch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 pytorch-cuda=12.1 -c pytorch -c nvidia \
-    && conda install --yes transformers=4.31.0 \
-    && cd /app \
+    && conda install --yes transformers=4.31.0
+
+RUN conda activate tortoise \
+    && conda install -c conda-forge scikit-learn
+
+COPY . /app
+
+RUN cd /app \
+    && conda activate tortoise \
     && python setup.py install
+
+ENV TORTOISE_MODELS_DIR="/app/build/lib/tortoise/models"
+ENV PYTHONPATH="/app/tortoise"
